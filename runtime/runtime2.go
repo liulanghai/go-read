@@ -331,6 +331,10 @@ type gobuf struct {
 //
 // sudogs are allocated from a special pool. Use acquireSudog and
 // releaseSudog to allocate and free them.
+
+// sudog 说明g是在一个wait listzhong，比如channel的接收与发送。
+// sudog 是必须的，因为g的同步是多对多的，1个g可能在很多waitlist中，因此一个g可能对应很多sodug
+// 很多g可以在等待同一个同步对象，因此一个对象也可以能有很多个g
 type sudog struct {
 	// The following fields are protected by the hchan.lock of the
 	// channel this sudog is blocking on. shrinkstack depends on
@@ -443,7 +447,7 @@ type g struct {
 	// bytes allocated. If this is positive, then the G has credit
 	// to allocate gcAssistBytes bytes without assisting. If this
 	// is negative, then the G must correct this by performing
-	// scan work. We track this in bytes to make it fast to update
+	// scan work. We track this in bytes to make  it fast to update
 	// and check for debt in the malloc hot path. The assist ratio
 	// determines how this corresponds to scan work debt.
 	gcAssistBytes int64
@@ -616,7 +620,7 @@ type schedt struct {
 	nmidlelocked int32    // number of locked m's waiting for work
 	mnext        int64    // number of m's that have been created and next M ID
 	maxmcount    int32    // maximum number of m's allowed (or die)
-	nmsys        int32    // number of system m's not counted for deadlock
+	nmsys        int32    // number of system m's not counted for deadlock 
 	nmfreed      int64    // cumulative number of freed m's
 
 	ngsys uint32 // number of system goroutines; updated atomically
@@ -910,7 +914,7 @@ func (w waitReason) String() string {
 
 var (
 	allglen    uintptr
-	allm       *m
+	allm       *m    //所有的m
 	allp       []*p  // len(allp) == gomaxprocs; may change at safe points, otherwise immutable
 	allpLock   mutex // Protects P-less reads of allp and all writes
 	gomaxprocs int32

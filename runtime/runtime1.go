@@ -439,14 +439,14 @@ func timediv(v int64, div int32, rem *int32) int32 {
 // Helpers for Go. Must be NOSPLIT, must only call NOSPLIT functions, and must not block.
 
 //go:nosplit
-func acquirem() *m {
+func acquirem() *m { //获取m，会将m的引用计数+1
 	_g_ := getg()
 	_g_.m.locks++
 	return _g_.m
 }
 
 //go:nosplit
-func releasem(mp *m) {
+func releasem(mp *m) { //释放m，如果m没有锁，并且g是可以抢占的，将g设置为在newstack时候做检查。
 	_g_ := getg()
 	mp.locks--
 	if mp.locks == 0 && _g_.preempt {
