@@ -2816,7 +2816,7 @@ func goexit0(gp *g) {
 
 // save updates getg().sched to refer to pc and sp so that a following
 // gogo will restore pc and sp.
-//
+//将pc，sp的地址保存起来，后面调用gogo的时候恢复，来实现协程的重新运行
 // save must not have write barriers because invoking a write barrier
 // can clobber getg().sched.
 //
@@ -3479,7 +3479,6 @@ func newproc1(fn *funcval, argp *uint8, narg int32, callergp *g, callerpc uintpt
 	if trace.enabled {
 		traceGoCreate(newg, newg.startpc)
 	}
-	print("newg gid ", newg.goid, "\n")
 	runqput(_p_, newg, true)
 
 	if atomic.Load(&sched.npidle) != 0 && atomic.Load(&sched.nmspinning) == 0 && mainStarted {
@@ -4590,7 +4589,6 @@ func retake(now int64) uint32 {
 func preemptall() bool {
 	res := false
 	for _, _p_ := range allp {
-		print("preemptall called \n")
 		if _p_.status != _Prunning {
 			continue
 		}
