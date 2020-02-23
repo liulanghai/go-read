@@ -90,6 +90,8 @@ func (m *Mutex) lockSlow() {
 	for {
 		// Don't spin in starvation mode, ownership is handed off to waiters
 		// so we won't be able to acquire the mutex anyway.
+		//如果是普通模式，并且可以自旋
+		//runtime_canSpin 判断依据是 P的g队列中如果有则为false，否则为true
 		if old&(mutexLocked|mutexStarving) == mutexLocked && runtime_canSpin(iter) {
 			// Active spinning makes sense.
 			// Try to set mutexWoken flag to inform Unlock
@@ -98,7 +100,7 @@ func (m *Mutex) lockSlow() {
 				atomic.CompareAndSwapInt32(&m.state, old, old|mutexWoken) {
 				awoke = true
 			}
-			runtime_doSpin()
+			runtime_doSpin() //自旋一下
 			iter++
 			old = m.state
 			continue

@@ -57,12 +57,11 @@ func (o *Once) Do(f func()) {
 		o.doSlow(f)
 	}
 }
-
 func (o *Once) doSlow(f func()) {
 	o.m.Lock()
 	defer o.m.Unlock()
 	if o.done == 0 {
-		defer atomic.StoreUint32(&o.done, 1)
+		defer atomic.StoreUint32(&o.done, 1) //defer 执行这个，否则f中如何包含panic就会多次执行f了。有测试用例保证。
 		f()
 	}
 }

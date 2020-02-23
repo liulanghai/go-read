@@ -127,7 +127,7 @@ func (p *Pool) Get() interface{} {
 	}
 	l, pid := p.pin()
 	x := l.private
-	l.private = nil
+	l.private = nil //如果私有数据有的户，则直接返回
 	if x == nil {
 		// Try to pop the head of the local shard. We prefer
 		// the head over the tail for temporal locality of
@@ -154,7 +154,7 @@ func (p *Pool) getSlow(pid int) interface{} {
 	// See the comment in pin regarding ordering of the loads.
 	size := atomic.LoadUintptr(&p.localSize) // load-acquire
 	locals := p.local                        // load-consume
-	// Try to steal one element from other procs.
+	// Try to steal one element from other procs. //从别的p去拿
 	for i := 0; i < int(size); i++ {
 		l := indexLocal(locals, (pid+i+1)%int(size))
 		if x, _ := l.shared.popTail(); x != nil {
@@ -192,7 +192,7 @@ func (p *Pool) getSlow(pid int) interface{} {
 // pin pins the current goroutine to P, disables preemption and
 // returns poolLocal pool for the P and the P's id.
 // Caller must call runtime_procUnpin() when done with the pool.
-func (p *Pool) pin() (*poolLocal, int) {
+func (p *Pool) pin() (*poolLocal, int) { //防止抢占，并且将poolLocal poll的给P。
 	pid := runtime_procPin()
 	// In pinSlow we store to local and then to localSize, here we load in opposite order.
 	// Since we've disabled preemption, GC cannot happen in between.
@@ -212,11 +212,11 @@ func (p *Pool) pinSlow() (*poolLocal, int) {
 	runtime_procUnpin()
 	allPoolsMu.Lock()
 	defer allPoolsMu.Unlock()
-	pid := runtime_procPin()
+	pid := runtime_procPin() //获取P的ID，从0开始到cpu个数-1。 如4核则为 0,1,2,3
 	// poolCleanup won't be called while we are pinned.
 	s := p.localSize
 	l := p.local
-	if uintptr(pid) < s {
+	if uintptr(pid) < s { //如果P的ID小于s 则说明 之前已经有了poolLocal, 直接找就行了
 		return indexLocal(l, pid), pid
 	}
 	if p.local == nil {
@@ -227,10 +227,10 @@ func (p *Pool) pinSlow() (*poolLocal, int) {
 	local := make([]poolLocal, size)
 	atomic.StorePointer(&p.local, unsafe.Pointer(&local[0])) // store-release
 	atomic.StoreUintptr(&p.localSize, uintptr(size))         // store-release
-	return &local[pid], pid
+	return &local[pid], pid                                  //找到属于自己的poolLocal
 }
 
-func poolCleanup() {
+func poolCleanup() { //gc stop the  world 时候会调用
 	// This function is called with the world stopped, at the beginning of a garbage collection.
 	// It must not allocate and probably should not call any runtime functions.
 
@@ -262,7 +262,7 @@ var (
 	// allPools is the set of pools that have non-empty primary
 	// caches. Protected by either 1) allPoolsMu and pinning or 2)
 	// STW.
-	allPools []*Pool
+	allPools []*Pool //STW时候回收
 
 	// oldPools is the set of pools that may have non-empty victim
 	// caches. Protected by STW.
@@ -279,6 +279,6 @@ func indexLocal(l unsafe.Pointer, i int) *poolLocal {
 }
 
 // Implemented in runtime.
-func runtime_registerPoolCleanup(cleanup func())
-func runtime_procPin() int
+func runtime_registerPoolCleanup(cleanup func()) //注册STW调用
+func runtime_procPin() int                       //获得P的ID，同时抢占
 func runtime_procUnpin()
