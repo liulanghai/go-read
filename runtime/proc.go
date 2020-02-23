@@ -2236,7 +2236,7 @@ func execute(gp *g, inheritTime bool) {
 // Finds a runnable goroutine to execute.
 // Tries to steal from other P's, get g from global queue, poll network.
 /*
-	查找可运行的g
+	查找可运行的g流程
 	1. 从本地队列寻找可执行的g runqget
 	2. 从全局队列获取可执行的g，他会一次获取多个g放到p本地队列的。选择第一个来执行。
 	3. 处理网络协程
